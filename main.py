@@ -115,11 +115,6 @@ async def junkrat_help(ctx):
         value="`>help` : Exibe este guia explosivo.",
         inline=False
     )
-    embed.add_field(
-        name="Time de 5v5",
-        value="`>time` : Escolhe uma formação de 5 campeões.",
-        inline=False
-    )
     embed.set_footer(text="BOOOM! O caos nunca dorme!")
     await ctx.send(embed=embed)
 
@@ -205,4 +200,5 @@ if DISCORD_BOT_TOKEN:
         print(f"Ocorreu um erro geral durante a execução: {e}")
 else:
     print("O Token do Discord não foi fornecido. O Bot Discord não foi iniciado.")
+
 
