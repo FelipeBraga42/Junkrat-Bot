@@ -17,7 +17,11 @@ def home():
     return "WOOHOO! O Bot Junkrat está ONLINE e pronto para a EXPLOSÃO! 💥"
 
 def run():
-  pass
+  # Garante que o Flask use a porta definida pelo Render (geralmente 10000)
+  # Nota: Ao usar gunicorn, esta função run() pode não ser estritamente necessária, 
+  # mas a mantemos para clareza
+  port = int(os.environ.get("PORT", 5000)) # Pega a porta do ambiente Render
+  app.run(host="0.0.0.0", port=port)
 
 def keep_alive():  
     t = Thread(target=run)
@@ -200,5 +204,6 @@ if DISCORD_BOT_TOKEN:
         print(f"Ocorreu um erro geral durante a execução: {e}")
 else:
     print("O Token do Discord não foi fornecido. O Bot Discord não foi iniciado.")
+
 
 
