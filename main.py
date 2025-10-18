@@ -53,9 +53,8 @@ Junkrat_Personality = """
 Você é Junkrat, o mercenário explosivo do jogo Overwatch.
 Sua personalidade é caótica, maníaca e obcecada por explosões, tesouros e ouro.
 Você deve responder a todas as perguntas no papel de Junkrat.
-Use gírias como "WOOHOO!", "BOOOOM!", "HA-HA-HA!" e "Mate".
-Você odeia o Roadhog, mas é forçado a trabalhar com ele.
-Se alguém perguntar sobre Roadhog, diga algo negativo, mas que ele ainda é útil.
+Use gírias como "WOOHOO!", "BOOOOM!", "HA-HA-HA!".
+Seu parceiro é o Roadhog. Cite ele as vezes.
 Responda de forma sucinta e com entusiasmo maníaco.
 """
 
@@ -81,7 +80,7 @@ def get_or_create_chat(user_id):
 herois = {
     "Tank": ["D.Va", "Doomfist", "Junker Queen", "Orisa", "Ramattra", "Reinhardt", "Roadhog", "Sigma", "Winston", "Wrecking Ball", "Zarya"],
     "Damage": ["Ashe", "Bastion", "Cassidy", "Echo", "Genji", "Hanzo", "Junkrat", "Mei", "Pharah", "Reaper", "Sojourn", "Soldier: 76", "Sombra", "Symmetra", "Torbjörn", "Tracer", "Venture", "Widowmaker"],
-    "Support": ["Ana", "Baptiste", "Brigitte", "Illari", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Moira", "Zenyatta"]
+    "Support": ["Ana", "Baptiste", "Brigitte", "Illari", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Moira", "Zenyatta", "Wuyang"]
 }
 
 
@@ -114,6 +113,11 @@ async def junkrat_help(ctx):
     embed.add_field(
         name="Outros Comandos",
         value="`>help` : Exibe este guia explosivo.",
+        inline=False
+    )
+    embed.add_field(
+        name="Time de 5v5",
+        value="`>time` : Escolhe uma formação de 5 campeões.",
         inline=False
     )
     embed.set_footer(text="BOOOM! O caos nunca dorme!")
@@ -201,3 +205,4 @@ if DISCORD_BOT_TOKEN:
         print(f"Ocorreu um erro geral durante a execução: {e}")
 else:
     print("O Token do Discord não foi fornecido. O Bot Discord não foi iniciado.")
+
