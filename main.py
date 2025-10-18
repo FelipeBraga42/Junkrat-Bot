@@ -7,23 +7,18 @@ import asyncio
 import random
 
 # --- CÓDIGO DO KEEP_ALIVE EMBUTIDO (Para o Render.com) ---
-# Importa o Flask, necessário para criar o servidor web
 from flask import Flask
 from threading import Thread
 
-# Cria o app Flask (o web server). O Gunicorn/Render procura por este objeto 'app'
 app = Flask('')
 
-# Rota/Página que o UptimeRobot irá "pingar"
 @app.route('/')
 def home():
     return "WOOHOO! O Bot Junkrat está ONLINE e pronto para a EXPLOSÃO! 💥"
 
-# Função que inicia o servidor em um thread separado (não é usada pelo Render/Gunicorn, mas é inofensiva)
 def run():
   pass
 
-# Função para ser chamada no código principal
 def keep_alive():  
     t = Thread(target=run)
     t.start()
@@ -32,22 +27,19 @@ def keep_alive():
 
 # --- 1. CONFIGURAÇÃO DO BOT (CORRIGIDO PARA O GOOGLE GENAI CLIENT) ---
 
-# Os tokens são lidos das Variáveis de Ambiente do Render
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not DISCORD_BOT_TOKEN:
     print("ERRO: O token do Discord (DISCORD_BOT_TOKEN) não foi encontrado.")
 
-# Adiciona help_command=None para DESATIVAR o comando 'help' embutido do Discord.py
 intents = discord.Intents.default()
 intents.message_content = True 
 bot = commands.Bot(command_prefix=">", intents=intents, help_command=None) 
 
-# Inicializa o cliente Gemini
 gemini_client = None
 if GEMINI_API_KEY:
-    # --- CORREÇÃO DA INICIALIZAÇÃO APLICADA AQUI ---
+    # CORREÇÃO DA INICIALIZAÇÃO APLICADA
     gemini_client = genai.Client(api_key=GEMINI_API_KEY)
     print("API Gemini configurada com sucesso!")
 else:
@@ -73,7 +65,6 @@ def get_or_create_chat(user_id):
         if gemini_client is None:
             return None
         
-        # Cria uma nova sessão de chat com o contexto e histórico vazios
         chat = gemini_client.chats.create(
             model="gemini-2.5-flash",
             config=types.GenerateContentConfig(
@@ -84,15 +75,21 @@ def get_or_create_chat(user_id):
     return chat_sessions[user_id]
 
 
-# --- 3. DADOS DAS LOOT BOX REMOVIDO! ---
+# --- 3. DADOS PARA COMANDO DE TIME (LOOT BOX REMOVIDO) ---
+
+# DADOS DOS HERÓIS PARA O COMANDO >TIME
+herois = {
+    "Tank": ["D.Va", "Doomfist", "Junker Queen", "Orisa", "Ramattra", "Reinhardt", "Roadhog", "Sigma", "Winston", "Wrecking Ball", "Zarya"],
+    "Damage": ["Ashe", "Bastion", "Cassidy", "Echo", "Genji", "Hanzo", "Junkrat", "Mei", "Pharah", "Reaper", "Sojourn", "Soldier: 76", "Sombra", "Symmetra", "Torbjörn", "Tracer", "Venture", "Widowmaker"],
+    "Support": ["Ana", "Baptiste", "Brigitte", "Illari", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Moira", "Zenyatta"]
+}
 
 
-# --- 4. COMANDOS DO BOT (COMANDOS DE LOOTBOX REMOVIDOS) ---
+# --- 4. COMANDOS DO BOT (LOOT BOX REMOVIDO) ---
 
 @bot.event
 async def on_ready():
     print(f"Pronto! Eu sou o {bot.user.name} e estou pronto para a explosão!")
-    # Define o status do bot
     await bot.change_presence(activity=discord.Game(name="Gerando Caos | >help"))
 
 
@@ -111,7 +108,7 @@ async def junkrat_help(ctx):
     )
     embed.add_field(
         name="Comandos de Jogos (Um pouco de caos!)",
-        value="`>moeda` : Joga uma moeda (Cara ou Coroa).\n`>dado <lados>` : Rola um dado (Ex: `>dado 6` ou `>dado 20`).",
+        value="`>moeda` : Joga uma moeda (Cara ou Coroa).\n`>dado <lados>` : Rola um dado (Ex: `>dado 6` ou `>dado 20`).\n`>time` : Gera uma composição de time 5v5 de Overwatch.",
         inline=False
     )
     embed.add_field(
@@ -139,36 +136,50 @@ async def roll_dice(ctx, sides: int = 6):
     resultado = random.randint(1, sides)
     await ctx.send(f"Junkrat rolou um dado de **{sides}** lados: O resultado é **{resultado}!** 🤪")
 
+@bot.command(name='time', aliases=['5v5', 'equipe'])
+async def team_picker(ctx):
+    """Gera uma composição de time 5v5 aleatória (1 Tank, 2 Damage, 2 Support)."""
+    
+    if not herois["Tank"] or not herois["Damage"] or not herois["Support"]:
+        return await ctx.send("Os heróis sumiram! O mapa está vazio! BOOOOM!")
+
+    tank_escolhido = random.choice(herois["Tank"])
+    damage_escolhidos = random.sample(herois["Damage"], 2)
+    support_escolhidos = random.sample(herois["Support"], 2)
+    
+    embed = discord.Embed(
+        title="💥 COMPOSIÇÃO DE TIME EXPLOSIVA (5v5)! 💥",
+        description="WOOHOO! É hora de começar o caos com este time:",
+        color=0xFF4500
+    )
+    embed.add_field(name="🛡️ Tank (1)", value=f"**{tank_escolhido}**", inline=False)
+    embed.add_field(name="⚔️ Damage (2)", value=f"**{', '.join(damage_escolhidos)}**", inline=True)
+    embed.add_field(name="🩺 Support (2)", value=f"**{', '.join(support_escolhidos)}**", inline=True)
+    
+    embed.set_footer(text="AGORA VAI! HA-HA-HA!")
+    await ctx.send(f"Escutem, {ctx.author.mention}! Seu novo time está pronto!", embed=embed)
 
 # --- 5. CHAT COM IA (MANTIDO) ---
 
 @bot.event
 async def on_message(message):
-    # Ignora mensagens de outros bots
     if message.author.bot:
         return
 
-    # Processa comandos (como >help, >moeda, >dado, etc.)
     await bot.process_commands(message)
 
-    # Verifica se a mensagem é uma menção ao bot
     if bot.user and bot.user.mentioned_in(message) and gemini_client:
         user_id = message.author.id
-        
-        # Remove a menção para obter apenas a mensagem do usuário
         user_message = message.content.replace(f'<@!{bot.user.id}>', '').strip()
 
         chat = get_or_create_chat(user_id)
         
         if chat is None:
-            # Caso o GEMINI_API_KEY não tenha sido configurado (gemini_client é None)
             await message.channel.send("Ah, droga! A chave Gemini não está configurada. Sem chat para você! BOOOOM!")
             return
 
-        # Envia a mensagem do usuário para o chat Gemini
         try:
             async with message.channel.typing():
-                # Usa asyncio.to_thread para não travar o bot
                 response = await asyncio.to_thread(chat.send_message, user_message)
                 
             await message.channel.send(response.text)
