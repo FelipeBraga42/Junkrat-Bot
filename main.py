@@ -6,13 +6,12 @@ import os
 import asyncio
 import random
 
-# --- CÓDIGO DO KEEP_ALIVE EMBUTIDO (Para o Render.com ou Replit) ---
+# --- CÓDIGO DO KEEP_ALIVE EMBUTIDO (Para o Render.com) ---
 # Importa o Flask, necessário para criar o servidor web
 from flask import Flask
 from threading import Thread
 
-# Cria o app Flask (o web server)
-# O Gunicorn/Render procura por este objeto 'app'
+# Cria o app Flask (o web server). O Gunicorn/Render procura por este objeto 'app'
 app = Flask('')
 
 # Rota/Página que o UptimeRobot irá "pingar"
@@ -20,29 +19,25 @@ app = Flask('')
 def home():
     return "WOOHOO! O Bot Junkrat está ONLINE e pronto para a EXPLOSÃO! 💥"
 
-# Função que inicia o servidor em um thread separado (se necessário, como no Replit)
+# Função que inicia o servidor em um thread separado (não é usada pelo Render/Gunicorn, mas é inofensiva)
 def run():
-  # Roda na porta padrão do Render (ou Replit)
-  # Quando usando Gunicorn/Render, esta função 'run' não é usada diretamente.
-  # O Gunicorn/Render inicia o 'app' através do Procfile: web: gunicorn main:app
   pass
 
-# Função para ser chamada no código principal (usada se for rodar localmente ou no Replit sem Gunicorn)
+# Função para ser chamada no código principal
 def keep_alive():  
     t = Thread(target=run)
     t.start()
 # --- FIM DO CÓDIGO KEEP_ALIVE ---
 
 
-# --- 1. CONFIGURAÇÃO DO BOT ---
+# --- 1. CONFIGURAÇÃO DO BOT (CORRIGIDO PARA O GOOGLE GENAI CLIENT) ---
 
-# Os tokens são lidos das Variáveis de Ambiente (Secrets do Replit ou Environment Variables do Render)
+# Os tokens são lidos das Variáveis de Ambiente do Render
 DISCORD_BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not DISCORD_BOT_TOKEN:
     print("ERRO: O token do Discord (DISCORD_BOT_TOKEN) não foi encontrado.")
-    # Não usamos exit() para permitir que a parte web (Flask) seja iniciada, se necessário.
 
 # Adiciona help_command=None para DESATIVAR o comando 'help' embutido do Discord.py
 intents = discord.Intents.default()
@@ -52,8 +47,8 @@ bot = commands.Bot(command_prefix=">", intents=intents, help_command=None)
 # Inicializa o cliente Gemini
 gemini_client = None
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    gemini_client = genai.Client()
+    # --- CORREÇÃO DA INICIALIZAÇÃO APLICADA AQUI ---
+    gemini_client = genai.Client(api_key=GEMINI_API_KEY)
     print("API Gemini configurada com sucesso!")
 else:
     print("AVISO: Chave Gemini não encontrada. O bot funcionará, mas sem o chat IA.")
@@ -79,7 +74,6 @@ def get_or_create_chat(user_id):
             return None
         
         # Cria uma nova sessão de chat com o contexto e histórico vazios
-        # Esta é uma função síncrona, não precisa de asyncio.to_thread aqui.
         chat = gemini_client.chats.create(
             model="gemini-2.5-flash",
             config=types.GenerateContentConfig(
@@ -90,28 +84,10 @@ def get_or_create_chat(user_id):
     return chat_sessions[user_id]
 
 
-# --- 3. DADOS DAS LOOT BOX (ITENS ÉPICOS E LENDÁRIOS) ---
-# Listas baseadas nos dados que você forneceu.
-# Usei apenas uma pequena parte de cada lista para manter o código curto e limpo.
-epic_items = [
-    "Na Mosca", "Girassol", "Ampulheta", "Rosa Amaldiçoada", "Balão de Rúgbi", 
-    "Filhote de Lobo", "Máscara Enfurecida", "Chocolate Quente", "Macaco Gélido", 
-    "Grilo de Felicitação", "Sakura", "Carinho em uma Raposa", "Agente de Missão", 
-    "Gravidade Zero", "Gato Preto Alado", "Zumbí", "Dançante", "Líder Circense",
-    "Chuva de balões", "Recompensa"
-]
-
-legendary_items = [
-    "Huitzilopochtli", "Submarino", "Gladiador", "Vênus", "Ciborgue: 76", 
-    "Grafite", "Jazzy", "Demônio", "Paconha", "Corvo Branco", "Dardo Venenoso", 
-    "Gata Neon", "Junkrat", "Mágica", "Roadhog", "Demônio do Pântano", "Vulcânico", 
-    "Dr. Frankenstein", "Esqueleto", "Faraó", "Dragonesa", "Wukong", "Qinglong", 
-    "Tigre", "Tropical", "Krampus", "Rei Rato", "Imperatriz do Gelo", "Rainha Gladiadora",
-    "Quebra-nozes", "Caranguejo"
-]
+# --- 3. DADOS DAS LOOT BOX REMOVIDO! ---
 
 
-# --- 4. COMANDOS DO BOT ---
+# --- 4. COMANDOS DO BOT (COMANDOS DE LOOTBOX REMOVIDOS) ---
 
 @bot.event
 async def on_ready():
@@ -134,8 +110,8 @@ async def junkrat_help(ctx):
         inline=False
     )
     embed.add_field(
-        name="Comandos de Loot Box (Tesouros!)",
-        value=f"`>loot` : Tenta abrir uma caixa de saque. Chances: Lendário (5%), Épico (15%), Raro (30%), Comum (50%).\n`>moeda` : Joga uma moeda (Cara ou Coroa).\n`>dado <lados>` : Rola um dado (Ex: `>dado 6` ou `>dado 20`).",
+        name="Comandos de Jogos (Um pouco de caos!)",
+        value="`>moeda` : Joga uma moeda (Cara ou Coroa).\n`>dado <lados>` : Rola um dado (Ex: `>dado 6` ou `>dado 20`).",
         inline=False
     )
     embed.add_field(
@@ -145,38 +121,6 @@ async def junkrat_help(ctx):
     )
     embed.set_footer(text="BOOOM! O caos nunca dorme!")
     await ctx.send(embed=embed)
-
-
-@bot.command(name='loot')
-async def loot_box(ctx):
-    """Simula a abertura de uma caixa de saque."""
-    chance = random.uniform(0, 100)
-    
-    if chance < 5:  # 5% de chance Lendário
-        rarity = "Lendário 🟡"
-        item = random.choice(legendary_items)
-        cor = 0xFFD700
-    elif chance < 20:  # 15% de chance Épico (5% + 15% = 20%)
-        rarity = "Épico 🟣"
-        item = random.choice(epic_items)
-        cor = 0x8A2BE2
-    elif chance < 50:  # 30% de chance Raro (20% + 30% = 50%)
-        rarity = "Raro 🔵"
-        item = "Créditos ou Emote Raro"
-        cor = 0x1E90FF
-    else: # 50% de chance Comum
-        rarity = "Comum ⚪"
-        item = "Spray ou Voz Comum"
-        cor = 0xFFFFFF
-        
-    embed = discord.Embed(
-        title="💥 CAIXA DE SAQUE EXPLODINDO! 💥",
-        description=f"WOOHOO! Você desenterrou um tesouro!",
-        color=cor
-    )
-    embed.add_field(name=f"Você tirou um item {rarity}!", value=f"**Item Encontrado:** {item}", inline=False)
-    embed.set_footer(text="HA-HA-HA! Mais tesouros para mim!")
-    await ctx.send(f"Olha só, {ctx.author.mention}!", embed=embed)
 
 
 @bot.command(name='moeda')
@@ -196,7 +140,7 @@ async def roll_dice(ctx, sides: int = 6):
     await ctx.send(f"Junkrat rolou um dado de **{sides}** lados: O resultado é **{resultado}!** 🤪")
 
 
-# --- 5. CHAT COM IA (CORREÇÃO CRÍTICA DO ASYNC) ---
+# --- 5. CHAT COM IA (MANTIDO) ---
 
 @bot.event
 async def on_message(message):
@@ -204,7 +148,7 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # Processa comandos (como >help, >loot, etc.)
+    # Processa comandos (como >help, >moeda, >dado, etc.)
     await bot.process_commands(message)
 
     # Verifica se a mensagem é uma menção ao bot
@@ -223,9 +167,6 @@ async def on_message(message):
 
         # Envia a mensagem do usuário para o chat Gemini
         try:
-            # CORREÇÃO CRÍTICA: Envolver a função síncrona com asyncio.to_thread
-            # Isso impede que a função Gemini bloqueie o loop assíncrono do Discord.py
-            
             async with message.channel.typing():
                 # Usa asyncio.to_thread para não travar o bot
                 response = await asyncio.to_thread(chat.send_message, user_message)
@@ -238,12 +179,10 @@ async def on_message(message):
 
 # --- 6. EXECUÇÃO ---
 
-# O 'keep_alive' é chamado para iniciar o servidor web (útil no Replit, ignorado pelo Gunicorn/Render, mas inofensivo)
 keep_alive() 
 
 if DISCORD_BOT_TOKEN:
     try:
-        # Tenta rodar o bot
         bot.run(DISCORD_BOT_TOKEN)
     except discord.LoginFailure:
         print("ERRO DE LOGIN: O Token do Discord (DISCORD_BOT_TOKEN) é inválido. Verifique o Secrets.")
