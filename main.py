@@ -87,7 +87,7 @@ herois = {
     "Damage": ["Ashe", "Bastion", "Cassidy", "Echo", "Genji", "Hanzo", "Junkrat", "Mei", "Pharah", "Reaper", "Sojourn", "Soldier: 76", "Sombra", "Symmetra", "Torbjörn", "Tracer", "Venture", "Widowmaker"],
     # O herói "Wuyang" foi removido daqui pois não existe no Overwatch, 
     # mantendo apenas os heróis oficiais para evitar erros de consistência em amostragem.
-    "Support": ["Ana", "Baptiste", "Brigitte", "Illari", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Moira", "Zenyatta"]
+    "Support": ["Ana", "Baptiste", "Brigitte", "Illari", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Moira", "Zenyatta", "Wuyang"]
 }
 
 
@@ -278,3 +278,4 @@ if DISCORD_BOT_TOKEN:
         print(f"Ocorreu um erro geral durante a execução: {e}")
 else:
     print("O Token do Discord não foi fornecido. O Bot Discord não foi iniciado.")
+
