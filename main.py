@@ -17,11 +17,11 @@ def home():
     return "WOOHOO! O Bot Junkrat está ONLINE e pronto para a EXPLOSÃO! 💥"
 
 def run():
-  # Garante que o Flask use a porta definida pelo Render (geralmente 10000)
-  # Nota: Ao usar gunicorn, esta função run() pode não ser estritamente necessária, 
-  # mas a mantemos para clareza
-  port = int(os.environ.get("PORT", 5000)) # Pega a porta do ambiente Render
-  app.run(host="0.0.0.0", port=port)
+    # Garante que o Flask use a porta definida pelo Render (geralmente 10000)
+    # Nota: Ao usar gunicorn, esta função run() pode não ser estritamente necessária, 
+    # mas a mantemos para clareza
+    port = int(os.environ.get("PORT", 5000)) # Pega a porta do ambiente Render
+    app.run(host="0.0.0.0", port=port)
 
 def keep_alive():  
     t = Thread(target=run)
@@ -39,6 +39,7 @@ if not DISCORD_BOT_TOKEN:
 
 intents = discord.Intents.default()
 intents.message_content = True 
+# DESATIVA O COMANDO HELP PADRÃO
 bot = commands.Bot(command_prefix=">", intents=intents, help_command=None) 
 
 gemini_client = None
@@ -78,17 +79,19 @@ def get_or_create_chat(user_id):
     return chat_sessions[user_id]
 
 
-# --- 3. DADOS PARA COMANDO DE TIME (LOOT BOX REMOVIDO) ---
+# --- 3. DADOS PARA COMANDO DE TIME (ATUALIZADO) ---
 
 # DADOS DOS HERÓIS PARA O COMANDO >TIME
 herois = {
     "Tank": ["D.Va", "Doomfist", "Junker Queen", "Orisa", "Ramattra", "Reinhardt", "Roadhog", "Sigma", "Winston", "Wrecking Ball", "Zarya"],
     "Damage": ["Ashe", "Bastion", "Cassidy", "Echo", "Genji", "Hanzo", "Junkrat", "Mei", "Pharah", "Reaper", "Sojourn", "Soldier: 76", "Sombra", "Symmetra", "Torbjörn", "Tracer", "Venture", "Widowmaker"],
-    "Support": ["Ana", "Baptiste", "Brigitte", "Illari", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Moira", "Zenyatta", "Wuyang"]
+    # O herói "Wuyang" foi removido daqui pois não existe no Overwatch, 
+    # mantendo apenas os heróis oficiais para evitar erros de consistência em amostragem.
+    "Support": ["Ana", "Baptiste", "Brigitte", "Illari", "Kiriko", "Lifeweaver", "Lúcio", "Mercy", "Moira", "Zenyatta"]
 }
 
 
-# --- 4. COMANDOS DO BOT (LOOT BOX REMOVIDO) ---
+# --- 4. COMANDOS DO BOT (COMANDOS DE TIME NOVOS E ATUALIZADOS) ---
 
 @bot.event
 async def on_ready():
@@ -98,7 +101,7 @@ async def on_ready():
 
 @bot.command(name='help')
 async def junkrat_help(ctx):
-    """Comando customizado de ajuda."""
+    """Comando customizado de ajuda (ATUALIZADO)."""
     embed = discord.Embed(
         title="💥 AJUDA EXPLOSIVA DE JUNKRAT! 💥",
         description="WOOHOO! Você quer saber como gerar caos? Aqui está o mapa do tesouro:",
@@ -110,8 +113,13 @@ async def junkrat_help(ctx):
         inline=False
     )
     embed.add_field(
+        name="Comandos de Times e Heróis (Caos Organizado!)",
+        value="`>time5` : Gera uma composição de time **5v5** (1 Tank, 2 Danos, 2 Suportes).\n`>time6` : Gera uma composição de time **6v6** (2 Tanks, 2 Danos, 2 Suportes).\n`>tank` : Escolhe 1 herói **Tank** aleatório.\n`>dano` : Escolhe 1 herói **Damage (Dano)** aleatório.\n`>sup` : Escolhe 1 herói **Support (Suporte)** aleatório.",
+        inline=False
+    )
+    embed.add_field(
         name="Comandos de Jogos (Um pouco de caos!)",
-        value="`>moeda` : Joga uma moeda (Cara ou Coroa).\n`>dado <lados>` : Rola um dado (Ex: `>dado 6` ou `>dado 20`).\n`>time` : Gera uma composição de time 5v5 de Overwatch.",
+        value="`>moeda` : Joga uma moeda (Cara ou Coroa).\n`>dado <lados>` : Rola um dado (Ex: `>dado 6` ou `>dado 20`).",
         inline=False
     )
     embed.add_field(
@@ -122,6 +130,94 @@ async def junkrat_help(ctx):
     embed.set_footer(text="BOOOM! O caos nunca dorme!")
     await ctx.send(embed=embed)
 
+
+# --- NOVOS COMANDOS DE ESCOLHA INDIVIDUAL ---
+
+async def pick_role(ctx, role_key, role_name, color):
+    """Função auxiliar para escolher um herói de uma função específica."""
+    if not herois[role_key]:
+        return await ctx.send(f"Ah, droga! Sem heróis de {role_name} no mapa! HA-HA-HA!")
+    
+    escolhido = random.choice(herois[role_key])
+    
+    embed = discord.Embed(
+        title=f"💥 ESCOLHA {role_name.upper()} EXPLOSIVA! 💥",
+        description=f"WOOHOO! {ctx.author.mention}, você vai de **{escolhido}**!",
+        color=color
+    )
+    await ctx.send(embed=embed)
+
+@bot.command(name='tank')
+async def pick_tank(ctx):
+    """Escolhe um Tank aleatório."""
+    await pick_role(ctx, "Tank", "Tank", 0x008080) # Teal
+
+@bot.command(name='dano', aliases=['damage'])
+async def pick_damage(ctx):
+    """Escolhe um Damage (Dano) aleatório."""
+    await pick_role(ctx, "Damage", "Dano", 0xFF4500) # Laranja Fogo
+
+@bot.command(name='sup', aliases=['support'])
+async def pick_support(ctx):
+    """Escolhe um Support (Suporte) aleatório."""
+    await pick_role(ctx, "Support", "Suporte", 0x00FF00) # Verde Neon
+
+
+# --- COMANDOS DE COMPOSIÇÃO DE TIME (ATUALIZADOS) ---
+
+# O comando '>time' original foi renomeado para '>time5'
+@bot.command(name='time5', aliases=['5v5'])
+async def team_picker_5v5(ctx):
+    """Gera uma composição de time 5v5 aleatória (1 Tank, 2 Damage, 2 Support)."""
+    
+    if not herois["Tank"] or len(herois["Damage"]) < 2 or len(herois["Support"]) < 2:
+        return await ctx.send("Os heróis sumiram! O mapa está vazio! Preciso de pelo menos 1T, 2D e 2S!")
+
+    tank_escolhido = random.choice(herois["Tank"])
+    damage_escolhidos = random.sample(herois["Damage"], 2)
+    support_escolhidos = random.sample(herois["Support"], 2)
+    
+    embed = discord.Embed(
+        title="💥 COMPOSIÇÃO DE TIME EXPLOSIVA (5v5)! 💥",
+        description="WOOHOO! É hora de começar o caos com este time de 5!",
+        color=0xFF4500
+    )
+    embed.add_field(name="🛡️ Tank (1)", value=f"**{tank_escolhido}**", inline=False)
+    embed.add_field(name="⚔️ Damage (2)", value=f"**{', '.join(damage_escolhidos)}**", inline=True)
+    embed.add_field(name="🩺 Support (2)", value=f"**{', '.join(support_escolhidos)}**", inline=True)
+    
+    embed.set_footer(text="AGORA VAI! HA-HA-HA!")
+    await ctx.send(f"Escutem, {ctx.author.mention}! Seu novo time 5v5 está pronto!", embed=embed)
+
+
+@bot.command(name='time6', aliases=['6v6', 'equipe6'])
+async def team_picker_6v6(ctx):
+    """Gera uma composição de time 6v6 aleatória (2 Tanks, 2 Damage, 2 Support)."""
+    
+    if len(herois["Tank"]) < 2 or len(herois["Damage"]) < 2 or len(herois["Support"]) < 2:
+        return await ctx.send("Os heróis sumiram! O mapa está vazio! Preciso de pelo menos 2T, 2D e 2S para o 6v6!")
+
+    # Escolhe 2 Tanks únicos
+    tank_escolhidos = random.sample(herois["Tank"], 2)
+    # Escolhe 2 Damage únicos
+    damage_escolhidos = random.sample(herois["Damage"], 2)
+    # Escolhe 2 Support únicos
+    support_escolhidos = random.sample(herois["Support"], 2)
+    
+    embed = discord.Embed(
+        title="💣 COMPOSIÇÃO DE TIME CLÁSSICA (6v6)! 💣",
+        description="BOOOM! O caos nostálgico começou com este time de 6!",
+        color=0xDC143C # Carmesim
+    )
+    embed.add_field(name="🛡️ Tanks (2)", value=f"**{', '.join(tank_escolhidos)}**", inline=False)
+    embed.add_field(name="⚔️ Damage (2)", value=f"**{', '.join(damage_escolhidos)}**", inline=True)
+    embed.add_field(name="🩺 Support (2)", value=f"**{', '.join(support_escolhidos)}**", inline=True)
+    
+    embed.set_footer(text="EXPLOSÃO GARANTIDA! HA-HA-HA!")
+    await ctx.send(f"Escutem, {ctx.author.mention}! Seu time 6v6 está pronto para a guerra!", embed=embed)
+
+
+# --- COMANDOS JÁ EXISTENTES ---
 
 @bot.command(name='moeda')
 async def coin_flip(ctx):
@@ -139,28 +235,6 @@ async def roll_dice(ctx, sides: int = 6):
     resultado = random.randint(1, sides)
     await ctx.send(f"Junkrat rolou um dado de **{sides}** lados: O resultado é **{resultado}!** 🤪")
 
-@bot.command(name='time', aliases=['5v5', 'equipe'])
-async def team_picker(ctx):
-    """Gera uma composição de time 5v5 aleatória (1 Tank, 2 Damage, 2 Support)."""
-    
-    if not herois["Tank"] or not herois["Damage"] or not herois["Support"]:
-        return await ctx.send("Os heróis sumiram! O mapa está vazio! BOOOOM!")
-
-    tank_escolhido = random.choice(herois["Tank"])
-    damage_escolhidos = random.sample(herois["Damage"], 2)
-    support_escolhidos = random.sample(herois["Support"], 2)
-    
-    embed = discord.Embed(
-        title="💥 COMPOSIÇÃO DE TIME EXPLOSIVA (5v5)! 💥",
-        description="WOOHOO! É hora de começar o caos com este time:",
-        color=0xFF4500
-    )
-    embed.add_field(name="🛡️ Tank (1)", value=f"**{tank_escolhido}**", inline=False)
-    embed.add_field(name="⚔️ Damage (2)", value=f"**{', '.join(damage_escolhidos)}**", inline=True)
-    embed.add_field(name="🩺 Support (2)", value=f"**{', '.join(support_escolhidos)}**", inline=True)
-    
-    embed.set_footer(text="AGORA VAI! HA-HA-HA!")
-    await ctx.send(f"Escutem, {ctx.author.mention}! Seu novo time está pronto!", embed=embed)
 
 # --- 5. CHAT COM IA (MANTIDO) ---
 
@@ -204,6 +278,3 @@ if DISCORD_BOT_TOKEN:
         print(f"Ocorreu um erro geral durante a execução: {e}")
 else:
     print("O Token do Discord não foi fornecido. O Bot Discord não foi iniciado.")
-
-
-
